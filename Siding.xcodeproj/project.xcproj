@@ -8,7 +8,6 @@
     "development": "ja",
     "supported": [
       "Base",
-      "ja",
     ],
   },
   "files": [

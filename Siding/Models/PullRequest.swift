@@ -17,6 +17,13 @@ nonisolated struct PRKey: Hashable, Sendable, CustomStringConvertible {
     var description: String { "\(repositoryID)#\(number)" }
 }
 
+/// GraphQL の `reviewDecision`。必須レビューが設定されていないリポジトリでは nil になる。
+nonisolated enum ReviewDecision: String, Hashable, Sendable {
+    case approved = "APPROVED"
+    case changesRequested = "CHANGES_REQUESTED"
+    case reviewRequired = "REVIEW_REQUIRED"
+}
+
 nonisolated struct PullRequest: Identifiable, Hashable, Sendable {
     /// GraphQL の node ID
     let id: String
@@ -29,6 +36,9 @@ nonisolated struct PullRequest: Identifiable, Hashable, Sendable {
     let repository: String
     let repositoryID: Int
     let authorLogin: String?
+    /// 会話のコメントとインラインコメント (返信を含む) の合計。GraphQL の `totalCommentsCount`
+    let commentCount: Int
+    let reviewDecision: ReviewDecision?
 
     var key: PRKey { PRKey(repositoryID: repositoryID, number: number) }
 }

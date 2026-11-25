@@ -34,6 +34,9 @@ struct PullRequestRow: View {
                     .fontWeight(isUnread ? .bold : .regular)
                     .lineLimit(2)
                 HStack(spacing: 6) {
+                    if let decision = pullRequest.reviewDecision {
+                        ReviewDecisionIcon(decision: decision)
+                    }
                     Text("\(pullRequest.repository)#\(pullRequest.number)")
                     if pullRequest.isDraft {
                         Text("Draft")
@@ -43,6 +46,12 @@ struct PullRequestRow: View {
                     if let author = pullRequest.authorLogin {
                         Text(author)
                     }
+                    if pullRequest.commentCount > 0 {
+                        Label("\(pullRequest.commentCount)", systemImage: "bubble.left")
+                            .labelStyle(.titleAndIcon)
+                            .monospacedDigit()
+                            .help("コメント \(pullRequest.commentCount) 件 (インラインコメントを含む)")
+                    }
                     Spacer()
                     Text(pullRequest.updatedAt, format: .relative(presentation: .named))
                 }
@@ -51,5 +60,44 @@ struct PullRequestRow: View {
             }
         }
         .padding(.vertical, 2)
+    }
+}
+
+/// レビュー状態を Octicons で表示する (アイコンは Assets.xcassets、ライセンスは Resources/THIRD_PARTY_NOTICES.txt)。
+struct ReviewDecisionIcon: View {
+    let decision: ReviewDecision
+
+    var body: some View {
+        Image(imageName)
+            .renderingMode(.template)
+            .resizable()
+            .frame(width: 12, height: 12)
+            .foregroundStyle(color)
+            .help(label)
+            .accessibilityLabel(label)
+    }
+
+    private var imageName: String {
+        switch decision {
+        case .approved: "OcticonCheckCircle"
+        case .changesRequested: "OcticonFileDiff"
+        case .reviewRequired: "OcticonEye"
+        }
+    }
+
+    private var color: Color {
+        switch decision {
+        case .approved: .green
+        case .changesRequested: .red
+        case .reviewRequired: .orange
+        }
+    }
+
+    private var label: String {
+        switch decision {
+        case .approved: "Approved"
+        case .changesRequested: "Changes requested"
+        case .reviewRequired: "Review required"
+        }
     }
 }

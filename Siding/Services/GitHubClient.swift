@@ -21,6 +21,8 @@ nonisolated struct GitHubClient: Sendable {
             isDraft
             repository { nameWithOwner fullDatabaseId }
             author { login }
+            totalCommentsCount
+            reviewDecision
           }
         }
       }
@@ -62,7 +64,8 @@ nonisolated struct GitHubClient: Sendable {
             return PullRequest(
                 id: id, number: number, title: title, url: url, updatedAt: updatedAt,
                 isDraft: node.isDraft ?? false, repository: repository, repositoryID: repositoryID,
-                authorLogin: node.author?.login
+                authorLogin: node.author?.login, commentCount: node.totalCommentsCount ?? 0,
+                reviewDecision: node.reviewDecision.flatMap(ReviewDecision.init(rawValue:))
             )
         }
         .sorted { $0.updatedAt > $1.updatedAt }
@@ -92,6 +95,9 @@ private nonisolated struct SearchResponse: Decodable, Sendable {
         let isDraft: Bool?
         let repository: Repository?
         let author: Author?
+        let totalCommentsCount: Int?
+        /// 未知の値が増えてもデコードが失敗しないよう文字列で受ける
+        let reviewDecision: String?
     }
     struct GraphQLErrorItem: Decodable, Sendable { let message: String }
 
