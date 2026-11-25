@@ -14,6 +14,10 @@ final class PullRequestStore {
     private(set) var lastError: String?
     private(set) var lastUpdated: Date?
     private(set) var hasToken = false
+    /// REST (通知) の rate limit
+    private(set) var restRateLimit: RateLimit?
+    /// GraphQL (search) の rate limit
+    private(set) var graphQLRateLimit: RateLimit?
 
     /// search の保険としての再取得間隔
     static let searchRefreshInterval: Duration = .seconds(15 * 60)
@@ -119,8 +123,11 @@ final class PullRequestStore {
         async let mineResult = client.searchPullRequests(query: filter.searchQuery(base: GitHubClient.myPullRequestsQuery))
         async let reviewResult = client.searchPullRequests(query: filter.searchQuery(base: GitHubClient.reviewRequestedQuery))
         let (mine, review) = try await (mineResult, reviewResult)
-        self.mine = mine.filter { filter.matches($0.repository) }
-        self.reviewRequested = review.filter { filter.matches($0.repository) }
+        self.mine = mine.pullRequests.filter { filter.matches($0.repository) }
+        self.reviewRequested = review.pullRequests.filter { filter.matches($0.repository) }
+        if let rateLimit = review.rateLimit ?? mine.rateLimit {
+            graphQLRateLimit = rateLimit
+        }
         lastSearchAt = clock.now
         Log.store.info("lists: mine=\(self.mine.map(\.key.description), privacy: .public) reviewRequested=\(self.reviewRequested.map(\.key.description), privacy: .public)")
     }
@@ -133,11 +140,13 @@ final class PullRequestStore {
             since: NotificationsClient.since(defaults: .standard)
         )
         switch result {
-        case .notModified(let interval):
+        case .notModified(let interval, let rateLimit):
             if let interval { pollInterval = interval }
+            if let rateLimit { restRateLimit = rateLimit }
             return false
-        case .updated(let threads, let etag, let interval):
+        case .updated(let threads, let etag, let interval, let rateLimit):
             if let interval { pollInterval = interval }
+            if let rateLimit { restRateLimit = rateLimit }
             self.etag = etag
             let table = NotificationsClient.unreadTable(from: threads, filter: filter)
             let changed = table != unreadThreads
@@ -154,7 +163,9 @@ final class PullRequestStore {
         guard let token, let threadID = unreadThreads.removeValue(forKey: pr.key) else { return }
         Task {
             do {
-                try await NotificationsClient(token: token).markRead(threadID: threadID)
+                if let rateLimit = try await NotificationsClient(token: token).markRead(threadID: threadID) {
+                    restRateLimit = rateLimit
+                }
             } catch {
                 handle(error)
             }

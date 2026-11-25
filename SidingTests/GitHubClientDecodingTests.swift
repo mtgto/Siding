@@ -26,6 +26,19 @@ struct GitHubClientDecodingTests {
         }
     }
 
+    @Test func parsesRateLimitHeaders() throws {
+        let url = try #require(URL(string: "https://api.github.com/notifications"))
+        let response = try #require(HTTPURLResponse(url: url, statusCode: 304, httpVersion: nil, headerFields: [
+            "X-RateLimit-Limit": "5000",
+            "X-RateLimit-Remaining": "4548",
+            "X-RateLimit-Reset": "1800000000",
+        ]))
+        #expect(RateLimit(response: response) == RateLimit(limit: 5000, remaining: 4548, reset: Date(timeIntervalSince1970: 1_800_000_000)))
+
+        let missing = try #require(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: [:]))
+        #expect(RateLimit(response: missing) == nil)
+    }
+
     @Test func parsesNextLink() {
         let header = #"<https://api.github.com/notifications?page=2>; rel="next", <https://api.github.com/notifications?page=5>; rel="last""#
         #expect(GitHubAPI.nextLink(from: header) == URL(string: "https://api.github.com/notifications?page=2"))

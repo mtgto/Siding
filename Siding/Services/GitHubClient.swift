@@ -27,7 +27,7 @@ nonisolated struct GitHubClient: Sendable {
     }
     """
 
-    func searchPullRequests(query: String) async throws -> [PullRequest] {
+    func searchPullRequests(query: String) async throws -> (pullRequests: [PullRequest], rateLimit: RateLimit?) {
         var request = GitHubAPI.request(url: GitHubAPI.graphQLURL, token: token, method: "POST")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(GraphQLRequest(query: Self.searchDocument, variables: ["q": query]))
@@ -40,7 +40,7 @@ nonisolated struct GitHubClient: Sendable {
         case 401: throw GitHubError.unauthorized
         default: throw GitHubError.http(status: http.statusCode)
         }
-        return try await Self.decodeSearch(data)
+        return (try await Self.decodeSearch(data), RateLimit(response: http))
     }
 
     @concurrent

@@ -20,6 +20,28 @@ nonisolated enum GitHubError: LocalizedError, Sendable {
     }
 }
 
+/// レスポンスヘッダ X-RateLimit-* から読む rate limit の状態。
+/// REST (core) と GraphQL は上限が別々。
+nonisolated struct RateLimit: Equatable, Sendable {
+    let limit: Int
+    let remaining: Int
+    let reset: Date
+
+    init(limit: Int, remaining: Int, reset: Date) {
+        self.limit = limit
+        self.remaining = remaining
+        self.reset = reset
+    }
+
+    init?(response: HTTPURLResponse) {
+        guard let limit = response.value(forHTTPHeaderField: "X-RateLimit-Limit").flatMap(Int.init),
+              let remaining = response.value(forHTTPHeaderField: "X-RateLimit-Remaining").flatMap(Int.init),
+              let reset = response.value(forHTTPHeaderField: "X-RateLimit-Reset").flatMap(TimeInterval.init)
+        else { return nil }
+        self.init(limit: limit, remaining: remaining, reset: Date(timeIntervalSince1970: reset))
+    }
+}
+
 nonisolated enum GitHubAPI {
     static let restBase = URL(string: "https://api.github.com")!
     static let graphQLURL = URL(string: "https://api.github.com/graphql")!

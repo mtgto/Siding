@@ -31,8 +31,8 @@ nonisolated struct NotificationThread: Decodable, Sendable {
 }
 
 nonisolated enum NotificationsResult: Sendable {
-    case notModified(pollInterval: Int?)
-    case updated(threads: [NotificationThread], etag: String?, pollInterval: Int?)
+    case notModified(pollInterval: Int?, rateLimit: RateLimit?)
+    case updated(threads: [NotificationThread], etag: String?, pollInterval: Int?, rateLimit: RateLimit?)
 }
 
 /// REST の Notifications API。条件付きリクエストで 304 を受ければ rate limit を消費しない。
@@ -67,6 +67,7 @@ nonisolated struct NotificationsClient: Sendable {
         var threads: [NotificationThread] = []
         var etag: String?
         var pollInterval: Int?
+        var rateLimit: RateLimit?
         var isFirstPage = true
         var pageCount = 0
 
@@ -82,6 +83,7 @@ nonisolated struct NotificationsClient: Sendable {
             }
             let (data, response) = try await GitHubAPI.session.data(for: request)
             guard let http = response as? HTTPURLResponse else { throw GitHubError.invalidResponse }
+            rateLimit = RateLimit(response: http) ?? rateLimit
             if isFirstPage {
                 pollInterval = http.value(forHTTPHeaderField: "X-Poll-Interval").flatMap(Int.init)
                 etag = http.value(forHTTPHeaderField: "ETag")
@@ -95,7 +97,7 @@ nonisolated struct NotificationsClient: Sendable {
                 """)
             switch http.statusCode {
             case 200: break
-            case 304 where isFirstPage: return .notModified(pollInterval: pollInterval)
+            case 304 where isFirstPage: return .notModified(pollInterval: pollInterval, rateLimit: rateLimit)
             case 401: throw GitHubError.unauthorized
             default: throw GitHubError.http(status: http.statusCode)
             }
@@ -105,17 +107,17 @@ nonisolated struct NotificationsClient: Sendable {
             url = GitHubAPI.nextLink(from: http.value(forHTTPHeaderField: "Link"))
             isFirstPage = false
         }
-        return .updated(threads: threads, etag: etag, pollInterval: pollInterval)
+        return .updated(threads: threads, etag: etag, pollInterval: pollInterval, rateLimit: rateLimit)
     }
 
-    func markRead(threadID: String) async throws {
+    func markRead(threadID: String) async throws -> RateLimit? {
         let url = GitHubAPI.restBase.appending(path: "notifications/threads/\(threadID)")
         let request = GitHubAPI.request(url: url, token: token, method: "PATCH")
         let (_, response) = try await GitHubAPI.session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw GitHubError.invalidResponse }
         Log.network.info("PATCH notifications/threads/\(threadID, privacy: .public) status=\(http.statusCode, privacy: .public)")
         switch http.statusCode {
-        case 200..<300, 304: return
+        case 200..<300, 304: return RateLimit(response: http)
         case 401: throw GitHubError.unauthorized
         default: throw GitHubError.http(status: http.statusCode)
         }
