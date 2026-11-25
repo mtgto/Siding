@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import os
 import Observation
@@ -7,9 +8,9 @@ import Observation
 /// - 未読と変更検知: Notifications API を X-Poll-Interval ごとに条件付きでポーリング
 @Observable
 final class PullRequestStore {
-    private(set) var mine: [PullRequest] = []
-    private(set) var reviewRequested: [PullRequest] = []
-    private(set) var unreadThreads: [PRKey: String] = [:]
+    private(set) var mine: [PullRequest] = [] { didSet { updateDockBadge() } }
+    private(set) var reviewRequested: [PullRequest] = [] { didSet { updateDockBadge() } }
+    private(set) var unreadThreads: [PRKey: String] = [:] { didSet { updateDockBadge() } }
     private(set) var isLoading = false
     private(set) var lastError: String?
     private(set) var lastUpdated: Date?
@@ -42,6 +43,17 @@ final class PullRequestStore {
 
     func unreadCount(in prs: [PullRequest]) -> Int {
         prs.count { isUnread($0) }
+    }
+
+    /// 自分の PR とレビュー依頼の PR の未読数の合計 (同じ PR は1回だけ数える)
+    static func totalUnreadCount(lists: [[PullRequest]], unread: Set<PRKey>) -> Int {
+        Set(lists.joined().map(\.key)).intersection(unread).count
+    }
+
+    /// Dock アイコンのバッジに未読数の合計を出す。一覧か未読表が変わるたびに呼ばれる。
+    private func updateDockBadge() {
+        let total = Self.totalUnreadCount(lists: [mine, reviewRequested], unread: Set(unreadThreads.keys))
+        NSApplication.shared.dockTile.badgeLabel = total > 0 ? String(total) : nil
     }
 
     // MARK: - Token

@@ -54,4 +54,17 @@ struct NotificationsTests {
         let url = NotificationsClient.firstPageURL(since: Date(timeIntervalSince1970: 0))
         #expect(url.absoluteString == "https://api.github.com/notifications?all=false&per_page=50&since=1970-01-01T00:00:00Z")
     }
+
+    @Test func totalUnreadCountCountsEachPROnce() {
+        func pr(_ repositoryID: Int, _ number: Int) -> PullRequest {
+            PullRequest(id: "\(repositoryID)-\(number)", number: number, title: "t",
+                        url: URL(string: "https://github.com/o/r/pull/\(number)")!, updatedAt: .now, isDraft: false,
+                        repository: "o/r", repositoryID: repositoryID, authorLogin: nil, commentCount: 0, reviewDecision: nil)
+        }
+        let mine = [pr(1, 1), pr(1, 2)]
+        let review = [pr(2, 10), pr(1, 2)]
+        let unread: Set = [PRKey(repositoryID: 1, number: 2), PRKey(repositoryID: 2, number: 10), PRKey(repositoryID: 9, number: 9)]
+        #expect(PullRequestStore.totalUnreadCount(lists: [mine, review], unread: unread) == 2)
+        #expect(PullRequestStore.totalUnreadCount(lists: [mine, review], unread: []) == 0)
+    }
 }
