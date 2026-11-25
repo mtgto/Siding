@@ -6,8 +6,8 @@ struct GitHubClientDecodingTests {
     @Test func parsesSearchResultSortedByUpdatedAtDescending() throws {
         let json = """
         {"data":{"search":{"nodes":[
-          {"id":"PR_1","number":1,"title":"Old","url":"https://github.com/o/r/pull/1","updatedAt":"2026-11-01T00:00:00Z","isDraft":false,"repository":{"nameWithOwner":"o/r"},"author":{"login":"alice"}},
-          {"id":"PR_2","number":2,"title":"New","url":"https://github.com/o/r/pull/2","updatedAt":"2026-11-20T12:34:56Z","isDraft":true,"repository":{"nameWithOwner":"o/r"},"author":null},
+          {"id":"PR_1","number":1,"title":"Old","url":"https://github.com/o/r/pull/1","updatedAt":"2026-11-01T00:00:00Z","isDraft":false,"repository":{"nameWithOwner":"o/r","fullDatabaseId":"123"},"author":{"login":"alice"}},
+          {"id":"PR_2","number":2,"title":"New","url":"https://github.com/o/r/pull/2","updatedAt":"2026-11-20T12:34:56Z","isDraft":true,"repository":{"nameWithOwner":"o/r","fullDatabaseId":"123"},"author":null},
           {}
         ]}}}
         """
@@ -16,7 +16,7 @@ struct GitHubClientDecodingTests {
         #expect(prs[0].isDraft)
         #expect(prs[0].authorLogin == nil)
         #expect(prs[1].authorLogin == "alice")
-        #expect(prs[1].key == PRKey(repository: "O/R", number: 1))
+        #expect(prs[1].key == PRKey(repositoryID: 123, number: 1))
     }
 
     @Test func throwsGraphQLErrors() {

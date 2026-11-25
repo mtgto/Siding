@@ -3,11 +3,10 @@ import Testing
 @testable import Siding
 
 struct NotificationsTests {
-    @Test func prKeyFromAPIURL() {
-        #expect(PRKey(apiURL: URL(string: "https://api.github.com/repos/Owner/Repo/pulls/42")!)
-                == PRKey(repository: "owner/repo", number: 42))
-        #expect(PRKey(apiURL: URL(string: "https://api.github.com/repos/o/r/issues/42")!) == nil)
-        #expect(PRKey(apiURL: URL(string: "https://api.github.com/repos/o/r/pulls/abc")!) == nil)
+    @Test func pullRequestNumberFromAPIURL() {
+        #expect(PRKey.pullRequestNumber(apiURL: URL(string: "https://api.github.com/repos/Owner/Repo/pulls/42")!) == 42)
+        #expect(PRKey.pullRequestNumber(apiURL: URL(string: "https://api.github.com/repos/o/r/issues/42")!) == nil)
+        #expect(PRKey.pullRequestNumber(apiURL: URL(string: "https://api.github.com/repos/o/r/pulls/abc")!) == nil)
     }
 
     @Test func buildsUnreadTableFilteredByRepository() async throws {
@@ -15,19 +14,19 @@ struct NotificationsTests {
         [
           {"id":"1","unread":true,"reason":"review_requested","updated_at":"2026-11-25T00:00:00Z",
            "subject":{"title":"A","url":"https://api.github.com/repos/myorg/app/pulls/10","type":"PullRequest"},
-           "repository":{"full_name":"myorg/app"}},
+           "repository":{"id":100,"full_name":"myorg/app"}},
           {"id":"2","unread":true,"reason":"mention","updated_at":"2026-11-25T00:00:00Z",
            "subject":{"title":"B","url":"https://api.github.com/repos/myorg/app/issues/11","type":"Issue"},
-           "repository":{"full_name":"myorg/app"}},
+           "repository":{"id":100,"full_name":"myorg/app"}},
           {"id":"3","unread":true,"reason":"author","updated_at":"2026-11-25T00:00:00Z",
            "subject":{"title":"C","url":"https://api.github.com/repos/other/lib/pulls/3","type":"PullRequest"},
-           "repository":{"full_name":"other/lib"}},
+           "repository":{"id":200,"full_name":"other/lib"}},
           {"id":"4","unread":false,"reason":"author","updated_at":"2026-11-25T00:00:00Z",
            "subject":{"title":"D","url":"https://api.github.com/repos/myorg/app/pulls/12","type":"PullRequest"},
-           "repository":{"full_name":"myorg/app"}},
+           "repository":{"id":100,"full_name":"myorg/app"}},
           {"id":"5","unread":true,"reason":"subscribed","updated_at":"2026-11-25T00:00:00Z",
            "subject":{"title":"E","url":null,"type":"Release"},
-           "repository":{"full_name":"myorg/app"}}
+           "repository":{"id":100,"full_name":"myorg/app"}}
         ]
         """
         let threads = try await NotificationsClient.decode(Data(json.utf8))
@@ -35,12 +34,12 @@ struct NotificationsTests {
 
         let all = NotificationsClient.unreadTable(from: threads, filter: RepositoryFilter())
         #expect(all == [
-            PRKey(repository: "myorg/app", number: 10): "1",
-            PRKey(repository: "other/lib", number: 3): "3",
+            PRKey(repositoryID: 100, number: 10): "1",
+            PRKey(repositoryID: 200, number: 3): "3",
         ])
 
         let filtered = NotificationsClient.unreadTable(from: threads, filter: RepositoryFilter(owners: ["myorg"]))
-        #expect(filtered == [PRKey(repository: "myorg/app", number: 10): "1"])
+        #expect(filtered == [PRKey(repositoryID: 100, number: 10): "1"])
     }
 
     @Test func sinceDefaultsTo30DaysAndIsOverridable() throws {

@@ -129,7 +129,7 @@ final class PullRequestStore {
             graphQLRateLimit = rateLimit
         }
         lastSearchAt = clock.now
-        Log.store.info("lists: mine=\(self.mine.map(\.key.description), privacy: .public) reviewRequested=\(self.reviewRequested.map(\.key.description), privacy: .public)")
+        Log.store.info("lists: mine=\(self.mine.map { "\($0.repository)#\($0.number) (\($0.key))" }, privacy: .public) reviewRequested=\(self.reviewRequested.map { "\($0.repository)#\($0.number) (\($0.key))" }, privacy: .public)")
     }
 
     /// 未読表を更新する。変化があれば true。

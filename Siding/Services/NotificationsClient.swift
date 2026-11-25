@@ -8,8 +8,12 @@ nonisolated struct NotificationThread: Decodable, Sendable {
         let type: String
     }
     struct Repository: Decodable, Sendable {
+        let id: Int
         let fullName: String
-        enum CodingKeys: String, CodingKey { case fullName = "full_name" }
+        enum CodingKeys: String, CodingKey {
+            case id
+            case fullName = "full_name"
+        }
     }
 
     let id: String
@@ -26,7 +30,8 @@ nonisolated struct NotificationThread: Decodable, Sendable {
 
     var pullRequestKey: PRKey? {
         guard subject.type == "PullRequest", let url = subject.url else { return nil }
-        return PRKey(apiURL: url)
+        guard let number = PRKey.pullRequestNumber(apiURL: url) else { return nil }
+        return PRKey(repositoryID: repository.id, number: number)
     }
 }
 

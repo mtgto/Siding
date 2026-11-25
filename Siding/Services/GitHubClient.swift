@@ -19,7 +19,7 @@ nonisolated struct GitHubClient: Sendable {
             url
             updatedAt
             isDraft
-            repository { nameWithOwner }
+            repository { nameWithOwner fullDatabaseId }
             author { login }
           }
         }
@@ -57,10 +57,12 @@ nonisolated struct GitHubClient: Sendable {
         return nodes.compactMap { node -> PullRequest? in
             guard let node, let id = node.id, let number = node.number, let title = node.title,
                   let url = node.url, let updatedAt = node.updatedAt,
-                  let repository = node.repository?.nameWithOwner else { return nil }
+                  let repository = node.repository?.nameWithOwner,
+                  let repositoryID = node.repository?.fullDatabaseId.flatMap(Int.init) else { return nil }
             return PullRequest(
                 id: id, number: number, title: title, url: url, updatedAt: updatedAt,
-                isDraft: node.isDraft ?? false, repository: repository, authorLogin: node.author?.login
+                isDraft: node.isDraft ?? false, repository: repository, repositoryID: repositoryID,
+                authorLogin: node.author?.login
             )
         }
         .sorted { $0.updatedAt > $1.updatedAt }
@@ -76,7 +78,11 @@ private nonisolated struct SearchResponse: Decodable, Sendable {
     struct DataField: Decodable, Sendable { let search: Search }
     struct Search: Decodable, Sendable { let nodes: [Node?] }
     struct Node: Decodable, Sendable {
-        struct Repository: Decodable, Sendable { let nameWithOwner: String }
+        struct Repository: Decodable, Sendable {
+            let nameWithOwner: String
+            /// BigInt は JSON では文字列で返る。REST の `repository.id` と同じ値。
+            let fullDatabaseId: String?
+        }
         struct Author: Decodable, Sendable { let login: String }
         let id: String?
         let number: Int?
