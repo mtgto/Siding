@@ -35,3 +35,16 @@ defaults write net.mtgto.Siding NotificationsSinceDays -int 14
 ## TODO
 
 - 通知の取得件数を減らす: 未読の通知が多いと、通知に変化があるたびに最大10ページ (10リクエスト) を取り直している。`participating=true` を付ければ、自分が直接関わっている通知 (author / review_requested / mention / comment など) だけに絞れる。ただし、チーム宛てのレビュー依頼の通知が含まれるかは未確認。rate limit の消費が1時間に1000を超えるようなら対応する。
+
+## 配布用 DMG の作成
+
+Developer ID で署名・公証した DMG を `build/Siding-<version>.dmg` に作る。
+
+```sh
+# 初回だけ: 公証用の App Password をキーチェーンに保存する (アプリごとではなく Apple ID 用として共用)
+xcrun notarytool store-credentials notarytool-password --apple-id <Apple ID> --team-id W3A6B7FDC7
+
+make release
+# 別の名前で保存してある場合
+make release NOTARY_PROFILE=<名前>
+```
