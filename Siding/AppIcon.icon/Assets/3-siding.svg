@@ -1,0 +1,8 @@
+<!-- SPDX-License-Identifier: MIT -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- 本線から分岐して右上へ伸びる側線のレール -->
+  <g fill="none" stroke="#FF9F0A" stroke-width="36">
+    <path d="M460.0 860.0 A450 450 0 0 1 620.7 515.3 L1202.9 26.8"/>
+    <path d="M320.0 860.0 A590 590 0 0 1 530.8 408.0 L1112.9 -80.5"/>
+  </g>
+</svg>
