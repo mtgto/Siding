@@ -6,6 +6,27 @@ struct PullRequestListView: View {
     @Binding var selection: PullRequest.ID?
 
     var body: some View {
+        ScrollViewReader { proxy in
+            list
+                // j/k で次/前の PR に移動する (未選択なら j は先頭、k は末尾を選ぶ)
+                .onKeyPress(characters: ["j", "k"]) { press in
+                    guard let target = neighbor(forward: press.characters == "j") else { return .ignored }
+                    selection = target
+                    proxy.scrollTo(target)
+                    return .handled
+                }
+        }
+    }
+
+    private func neighbor(forward: Bool) -> PullRequest.ID? {
+        guard let index = pullRequests.firstIndex(where: { $0.id == selection }) else {
+            return forward ? pullRequests.first?.id : pullRequests.last?.id
+        }
+        let next = forward ? index + 1 : index - 1
+        return pullRequests.indices.contains(next) ? pullRequests[next].id : nil
+    }
+
+    private var list: some View {
         List(pullRequests, selection: $selection) { pr in
             PullRequestRow(pullRequest: pr, isUnread: store.isUnread(pr))
                 .tag(pr.id)

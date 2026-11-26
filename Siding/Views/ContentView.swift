@@ -29,6 +29,9 @@ struct ContentView: View {
     @State private var section: PRSection? = .reviewRequested
     @State private var selection: PullRequest.ID?
 
+    /// PR を選んでから既読にするまでの時間
+    private static let markReadDelay: Duration = .seconds(1)
+
     private var pullRequests: [PullRequest] {
         switch section {
         case .reviewRequested: store.visibleReviewRequested
@@ -66,7 +69,15 @@ struct ContentView: View {
                 ContentUnavailableView("PR を選択してください", systemImage: "arrow.triangle.pull")
             }
         }
-        .onChange(of: selection) { _, _ in
+        // j/k で通り過ぎただけの PR は既読にしないよう、同じ PR を一定時間選び続けたら既読にする。
+        // 選択が変わると task はキャンセルされる。
+        .task(id: selection) {
+            guard selection != nil else { return }
+            do {
+                try await Task.sleep(for: Self.markReadDelay)
+            } catch {
+                return
+            }
             if let pr = selectedPullRequest {
                 store.markRead(pr)
             }
