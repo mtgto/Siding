@@ -11,6 +11,13 @@ final class PullRequestStore {
     private(set) var mine: [PullRequest] = [] { didSet { updateDockBadge() } }
     private(set) var reviewRequested: [PullRequest] = [] { didSet { updateDockBadge() } }
     private(set) var unreadThreads: [PRKey: String] = [:] { didSet { updateDockBadge() } }
+    /// アーカイブした PR のキー。変わるたびにファイルへ保存する。
+    private(set) var archived: Set<PRKey> = ArchiveStore.load() {
+        didSet {
+            ArchiveStore.save(archived)
+            updateDockBadge()
+        }
+    }
     private(set) var isLoading = false
     private(set) var lastError: String?
     private(set) var lastUpdated: Date?
@@ -37,6 +44,30 @@ final class PullRequestStore {
         hasToken = token != nil
     }
 
+    /// アーカイブしたものを除いた自分の PR
+    var visibleMine: [PullRequest] { mine.filter { !archived.contains($0.key) } }
+    /// アーカイブしたものを除いたレビュー依頼の PR
+    var visibleReviewRequested: [PullRequest] { reviewRequested.filter { !archived.contains($0.key) } }
+    /// アーカイブした PR のうち、いまの一覧 (open な PR) に含まれるもの
+    var archivedPullRequests: [PullRequest] {
+        var seen = Set<PRKey>()
+        return (mine + reviewRequested)
+            .filter { archived.contains($0.key) && seen.insert($0.key).inserted }
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    func archive(_ pr: PullRequest) {
+        archived.insert(pr.key)
+    }
+
+    func unarchive(_ pr: PullRequest) {
+        archived.remove(pr.key)
+    }
+
+    func isArchived(_ pr: PullRequest) -> Bool {
+        archived.contains(pr.key)
+    }
+
     func isUnread(_ pr: PullRequest) -> Bool {
         unreadThreads[pr.key] != nil
     }
@@ -50,9 +81,9 @@ final class PullRequestStore {
         Set(lists.joined().map(\.key)).intersection(unread).count
     }
 
-    /// Dock アイコンのバッジに未読数の合計を出す。一覧か未読表が変わるたびに呼ばれる。
+    /// Dock アイコンのバッジに未読数の合計 (アーカイブ分を除く) を出す。一覧・未読表・アーカイブが変わるたびに呼ばれる。
     private func updateDockBadge() {
-        let total = Self.totalUnreadCount(lists: [mine, reviewRequested], unread: Set(unreadThreads.keys))
+        let total = Self.totalUnreadCount(lists: [visibleMine, visibleReviewRequested], unread: Set(unreadThreads.keys))
         NSApplication.shared.dockTile.badgeLabel = total > 0 ? String(total) : nil
     }
 

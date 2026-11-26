@@ -20,8 +20,9 @@ struct SidebarView: View {
 
     private func unreadCount(for section: PRSection) -> Int {
         switch section {
-        case .reviewRequested: store.unreadCount(in: store.reviewRequested)
-        case .mine: store.unreadCount(in: store.mine)
+        case .reviewRequested: store.unreadCount(in: store.visibleReviewRequested)
+        case .mine: store.unreadCount(in: store.visibleMine)
+        case .archived: 0
         }
     }
 }

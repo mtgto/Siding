@@ -3,7 +3,7 @@ import Foundation
 /// リポジトリの数値 ID と PR 番号で PR を一意に表すキー。
 /// 通知のレスポンスには PR 自体の ID が無いため、リネームやオーナー移管でも変わらない
 /// リポジトリの数値 ID (REST の `repository.id` = GraphQL の `fullDatabaseId`) と番号を使う。
-nonisolated struct PRKey: Hashable, Sendable, CustomStringConvertible {
+nonisolated struct PRKey: Hashable, Codable, Sendable, CustomStringConvertible {
     let repositoryID: Int
     let number: Int
 

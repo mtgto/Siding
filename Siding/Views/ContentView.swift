@@ -3,6 +3,7 @@ import SwiftUI
 enum PRSection: String, CaseIterable, Identifiable, Hashable {
     case reviewRequested
     case mine
+    case archived
 
     var id: Self { self }
 
@@ -10,6 +11,7 @@ enum PRSection: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .reviewRequested: "レビュー依頼"
         case .mine: "自分のPR"
+        case .archived: "アーカイブ"
         }
     }
 
@@ -17,6 +19,7 @@ enum PRSection: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .reviewRequested: "eye"
         case .mine: "person"
+        case .archived: "archivebox"
         }
     }
 }
@@ -28,8 +31,9 @@ struct ContentView: View {
 
     private var pullRequests: [PullRequest] {
         switch section {
-        case .reviewRequested: store.reviewRequested
-        case .mine: store.mine
+        case .reviewRequested: store.visibleReviewRequested
+        case .mine: store.visibleMine
+        case .archived: store.archivedPullRequests
         case nil: []
         }
     }

@@ -9,6 +9,23 @@ struct PullRequestListView: View {
         List(pullRequests, selection: $selection) { pr in
             PullRequestRow(pullRequest: pr, isUnread: store.isUnread(pr))
                 .tag(pr.id)
+                .contextMenu {
+                    if store.isArchived(pr) {
+                        Button("アーカイブから戻す", systemImage: "tray.and.arrow.up") { store.unarchive(pr) }
+                    } else {
+                        Button("アーカイブ (E)", systemImage: "archivebox") { store.archive(pr) }
+                    }
+                }
+        }
+        // Jasper と同じく E キーで選択中の PR をアーカイブする (アーカイブ一覧では戻す)
+        .onKeyPress(characters: ["e"]) { _ in
+            guard let pr = pullRequests.first(where: { $0.id == selection }) else { return .ignored }
+            if store.isArchived(pr) {
+                store.unarchive(pr)
+            } else {
+                store.archive(pr)
+            }
+            return .handled
         }
         .overlay {
             if pullRequests.isEmpty && !store.isLoading {

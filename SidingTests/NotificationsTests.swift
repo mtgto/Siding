@@ -67,4 +67,13 @@ struct NotificationsTests {
         #expect(PullRequestStore.totalUnreadCount(lists: [mine, review], unread: unread) == 2)
         #expect(PullRequestStore.totalUnreadCount(lists: [mine, review], unread: []) == 0)
     }
+
+    @Test func archiveStoreRoundTrip() throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "SidingTests-\(UUID())/archived.json")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        #expect(ArchiveStore.load(from: url).isEmpty)
+        let keys: Set = [PRKey(repositoryID: 2, number: 10), PRKey(repositoryID: 1, number: 5)]
+        ArchiveStore.save(keys, to: url)
+        #expect(ArchiveStore.load(from: url) == keys)
+    }
 }
