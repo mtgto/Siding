@@ -1,0 +1,29 @@
+name: verify-lockfile
+
+# ワークフローとactions.lockが食い違っていないか検証する。
+# uses:を変更したら `gh actions-lock` を実行してactions.lockを更新すること。
+# https://github.com/github/gh-actions-lock/blob/main/.github/workflows/verify-lockfile.yml
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      # verify/vX.Y.Z タグは同じバージョンの CLI で --verify を実行するので、Dependabot で CLI も追従できる。
+      # https://github.com/github/gh-actions-lock/blob/main/verify/README.md
+      - uses: github/gh-actions-lock@verify/v0.5.1
